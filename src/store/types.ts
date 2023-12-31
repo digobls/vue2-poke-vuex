@@ -15,6 +15,7 @@ export interface PokemonState {
     listTypes: string[];
     loadingList: boolean;
     dataPokemon: Pokemon | null;
+    loadingData: boolean;
 }
 
 export interface RootState {

@@ -20,7 +20,7 @@
 
         <div class="box-data__type-container">
           <div v-for="type in dataPokemon.types" :key="type" class="box-data__type">
-            <img :src="getTypeIconUrl(type)" :alt="type" class="box-data_image-type" />
+            <img :src="require(`@/assets/img/types/${type}.svg`)" :alt="type" class="box-data_image-type" />
             <span class="box-data__name-type">{{ type }}</span>
           </div>
         </div>
@@ -41,49 +41,101 @@
 
 <script lang="ts">
 import Vue from 'vue';
-
-// enum StatName {
-//   HP = 'hp',
-//   Attack = 'attack',
-//   Defense = 'defense',
-//   SpecialAttack = 'special-attack',
-//   SpecialDefense = 'special-defense',
-//   Speed = 'speed'
-// }
+import { mapActions, mapGetters } from 'vuex';
 
 export default Vue.extend({
   name: 'DetailView',
+  props: ['pokemonId'],
   data() {
     return {
-      dataPokemon: null,
-      svgUrlHillBig: null,
-      svgUrlHillSmall: null,
-      currentSvgDataUrl: null,
-      statAbbreviations: {
-        HP: 'HP',
-        Attack: 'ATK',
-        Defense: 'DEF',
-        SpecialAttack: 'SpP',
-        SpecialDefense: 'SpD',
-        Speed: 'spd'
-      }
+      svgUrlHillBig: '',
+      svgUrlHillSmall: '',
+      currentSvgDataUrl: '',
+      colorMap: new Map([
+        ['normal', '#A8A878'],
+        ['fighting', '#C03028'],
+        ['poison', '#A040A0'],
+        ['ground', '#E0C068'],
+        ['rock', '#B8A038'],
+        ['bug', '#A8B820'],
+        ['ghost', '#705898'],
+        ['steel', '#B8B8D0'],
+        ['fire', '#F08030'],
+        ['water', '#6890F0'],
+        ['grass', '#78C850'],
+        ['electric', '#F8D030'],
+        ['psychic', '#F85888'],
+        ['ice', '#98D8D8'],
+        ['dragon', '#7038F8'],
+        ['dark', '#705848'],
+        ['fairy', '#EE99AC'],
+        ['flying', '#A890F0']
+      ])
     }
   },
+  computed: {
+    ...mapGetters('pokemonModule', ['dataPokemon', 'loadingData']),
+  },
   methods: {
+    ...mapActions('pokemonModule', ['fetchPokemonById']),
     getColorClass(types: any) {
       return `background-${types[0]}`
     },
     getAbbreviatedStatName(statName: string) {
-      return statName;
-      // return this.statAbbreviations[statName];
+      switch (statName) {
+        case 'hp':
+          return 'HP';
+        case 'attack':
+          return 'ATK';
+        case 'defense':
+          return 'DEF';
+        case 'special-attack':
+          return 'SpP';
+        case 'special-defense':
+          return 'SpD';
+        case 'speed':
+          return 'spd';
+      }
     },
     getTypeClass(types: any) {
       return `type-${types[0]}`
     },
-    getTypeIconUrl(type: string) {
-      return `/src/assets/img/types/${type}.svg`;
+    async generateSvgDataUrl(svgUrl: string, color: any) {
+      const response = await fetch(svgUrl);
+      const svgText = await response.text();
+      const modifiedSvgText = svgText.replace(/fill="#[A-Fa-f0-9]+"/, `fill="${color}"`);
+      const svgBlob = new Blob([modifiedSvgText], { type: 'image/svg+xml' });
+      return URL.createObjectURL(svgBlob);
+    },
+    setColorByType() {
+      const type = this.dataPokemon?.types[0]?.toLowerCase();
+      const color = this.colorMap.get(type || 'transparent');
+
+      this.generateSvgDataUrl(require('@/assets/img/icons/hillBig.svg'), color).then((svgUrl) => {
+        this.svgUrlHillBig = svgUrl;
+        this.currentSvgDataUrl = window.innerWidth > 580 ? this.svgUrlHillBig : this.svgUrlHillSmall;
+      })
+      this.generateSvgDataUrl(require('@/assets/img/icons/hillSmall.svg'), color).then((svgUrl) => {
+        this.svgUrlHillSmall = svgUrl;
+        this.currentSvgDataUrl = window.innerWidth > 580 ? this.svgUrlHillBig : this.svgUrlHillSmall;
+      })
+    },
+    handleResize() {
+      this.currentSvgDataUrl = window.innerWidth > 580 ? this.svgUrlHillBig : this.svgUrlHillSmall;
     }
-  }
+  },
+  created() {
+    this.fetchPokemonById(this.$route.params.id);
+  },
+  mounted() {
+    window.addEventListener('resize', this.handleResize);
+  },
+  watch: {
+    dataPokemon: 'setColorByType'
+  },
+  beforeDestroy() {
+    window.removeEventListener('resize', this.handleResize);
+  },
 });
 </script>
 

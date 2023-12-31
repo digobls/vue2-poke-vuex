@@ -7,6 +7,7 @@ const state: PokemonState = {
     listTypes: [],
     loadingList: false,
     dataPokemon: null,
+    loadingData: false
 };
 
 const mutations: MutationTree<PokemonState> = {
@@ -76,7 +77,7 @@ const actions: ActionTree<PokemonState, RootState> = {
             }
         }
     },
-    async fetchPokemonById({ commit }, id: number) {
+    async fetchPokemonById({ commit }, id: string) {
         try {
             const detailResponse = await axios.get(`https://pokeapi.co/api/v2/pokemon/${id}`);
             const detailData = detailResponse.data;
@@ -111,10 +112,11 @@ const actions: ActionTree<PokemonState, RootState> = {
 };
 
 const getters: GetterTree<PokemonState, RootState> = {
-    getPokemonDetailData: state => state.dataPokemon,
     listPokemon: (state: PokemonState) => state.listPokemon,
+    dataPokemon: (state: PokemonState) => state.dataPokemon,
     listTypes: (state: PokemonState) => state.listTypes,
     loadingList: (state: PokemonState) => state.loadingList,
+    loadingData: (state: PokemonState) => state.loadingData,
 };
 
 const pokemonModule: Module<PokemonState, RootState> = {
@@ -126,10 +128,3 @@ const pokemonModule: Module<PokemonState, RootState> = {
 };
 
 export default pokemonModule;
-
-
-// const getters: GetterTree<PokemonState, RootState> = {
-//     getPokemonDetailData: state => state.dataPokemon,
-//     listPokemon: (state: PokemonState) => state.listPokemon,
-//     loadingList: (state: PokemonState) => state.loadingList,
-// };
