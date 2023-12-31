@@ -14,31 +14,27 @@
       </div>
 
       <!-- List -->
-      <a v-for="pokemon in listPokemon" :key="pokemon.code" :class="[pokemon.types[0]]" :href="'/detail/' + pokemon.id" class="pokemon-card">
-        <img :src="pokemon.image" :alt="pokemon.name" class="pokemon-card__figure" />
-        <span class="pokemon-card__code">{{ pokemon.code }}</span>
-        <div class="pokemon-card__box">
-          <p class="pokemon-card__name">{{ pokemon.name }}</p>
-          <div class="pokemon-card__type">
-            <img v-for="type in pokemon.types"
-                 :key="type"
-                 :src="getTypeIconUrl(type)"
-                 :alt="type"
-                 class="pokemon-card__image" />
-          </div>
+      <div v-if="isSearch" class="container-list">
+        <div v-for="pokemon in listSearch" :key="pokemon.code" class="container-list__card">
+          <PokemonCard :pokemon="pokemon" />
         </div>
-      </a>
+      </div>
+      <div v-else class="container-list">
+        <div v-for="pokemon in listPokemon" :key="pokemon.code" class="container-list__card">
+          <PokemonCard :pokemon="pokemon" />
+        </div>
+      </div>
 
       <!-- Loading -->
       <div v-if="loadingList" class="container-loading">
-        <a v-for="index in 151" :key="index" class="pokemon-card">
-          <p class="pokemon-card--loading-adjust loading-on-element-custom"></p>
+        <a v-for="index in 151" :key="index" class="list-card">
+          <p class="list-card--loading-adjust loading-on-element-custom"></p>
         </a>
       </div>
 
       <!-- Empty search -->
-      <div v-if="!listPokemon?.length && !loadingList" class="container-empty-search">
-        <p class="container-empty-search__text">Pokémon not found.</p>
+      <div v-if="isSearch && !listSearch?.length && !loadingList" class="container-empty-search">
+        <p class="container-empty-search__text">Pokemon not found.</p>
       </div>
     </div>
   </section>
@@ -46,17 +42,47 @@
 
 <script lang="ts">
 import Vue from 'vue';
+import { mapActions, mapGetters } from 'vuex';
+import PokemonCard from "@/components/PokemonCard.vue";
 
 export default Vue.extend({
   name: 'ListView',
+  components: {
+    PokemonCard
+  },
   data() {
     return {
-      pokemonName: null,
-      pokemonType: null,
-      loadingList: false,
-      listPokemon: [],
-      listTypes: []
+      pokemonName: '',
+      pokemonType: '',
+      listSearch: [],
+      isSearch: false
     }
+  },
+  computed: {
+    ...mapGetters('pokemonModule', ['listPokemon', 'listTypes', 'loadingList']),
+  },
+  methods: {
+    ...mapActions('pokemonModule', ['fetchPokemonList']),
+    searchPokemon() {
+      if (this.pokemonName || this.pokemonType) {
+        this.isSearch = true;
+        this.listSearch = this.listPokemon.filter((pokemon: any) => {
+          const hasName = pokemon.name.toLowerCase().includes(this.pokemonName?.toLowerCase());
+          const hasType = !this.pokemonType || pokemon.types.includes(this.pokemonType?.toLowerCase());
+          return hasName && hasType;
+        });
+      } else {
+        this.isSearch = false;
+        this.listSearch = this.listPokemon;
+      }
+    },
+  },
+  created() {
+    this.fetchPokemonList();
+  },
+  watch: {
+    pokemonName: 'searchPokemon',
+    pokemonType: 'searchPokemon',
   },
 });
 </script>
@@ -88,16 +114,6 @@ $color-map: (
 
 @function get-pokemon-color($type) {
   @return map-get($color-map, $type);
-}
-
-@each $type, $color in $color-map {
-  .pokemon-card.#{$type} {
-    border-color: $color;
-
-    p {
-      color: $color;
-    }
-  }
 }
 
 section {
@@ -168,78 +184,14 @@ section {
       }
     }
 
-    .pokemon-card {
-      width: calc(100% - 40px);
-      display: block;
-      position: relative;
-      height: 65px;
-      padding: 0;
-      margin: 0 auto 15px;
-      border-radius: 8px;
-      background: $color-white;
-      border-width: 25px 0 10px 0;
-      border-style: solid;
-      text-decoration: none;
-      cursor: pointer;
-
-      &__code {
-        position: absolute;
-        top: -22px;
-        left: 9px;
-        font-family: $font-family-fira;
-        color: $color-white;
-        text-align: center;
-        font-size: 16px;
-        font-style: normal;
-        font-weight: 450;
-        line-height: normal;
-      }
-
-      &__figure {
-        position: absolute;
-        right: 0;
-        bottom: -9px;
-        width: 100px;
-        height: 100px;
-      }
-
-      &__box {
+    .container-list {
+      &__card {
+        width: calc(100% - 40px);
+        display: block;
+        position: relative;
         height: 65px;
-        width: 100%;
-        padding: 0 10px;
-        display: flex;
-        align-items: center;
-      }
-
-      &__type {
-        position: absolute;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        top: -1px;
-        right: 111px;
-        margin: auto;
-        height: 65px;
-      }
-
-      &__image {
-        max-width: 18px;
-        margin-bottom: 9px;
-
-        &:last-of-type {
-          margin-bottom: 0;
-        }
-      }
-
-      &__name {
-        font-family: $font-family-fira;
-        font-size: 18px;
-        font-style: normal;
-        font-weight: 600;
-        line-height: 0;
-        margin: 0;
-        text-transform: capitalize;
+        padding: 0;
+        margin: 0 auto 15px;
       }
     }
 
@@ -270,38 +222,16 @@ section {
         }
       }
 
-      .pokemon-card {
-        width: calc(25% - 20px);
-        max-width: 200px;
-        max-height: 156px;
-        margin: 10px 10px 68px;
+      .container-list {
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
 
-        &__code {
-          left: unset;
-          right: 5px;
-        }
-
-        &__figure {
-          position: absolute;
-          left: 0;
-          right: 0;
-          bottom: 50px;
-          margin: 0 auto;
-        }
-
-        &__box {
-          justify-content: center;
-          flex-direction: column;
-        }
-
-        &__type {
-          top: 0;
-          right: unset;
-          left: 10px;
-        }
-
-        &__name {
-          font-weight: 450;
+        &__card {
+          width: calc(25% - 20px);
+          max-width: 200px;
+          max-height: 156px;
+          margin: 10px 10px 100px;
         }
       }
     }
@@ -312,7 +242,7 @@ section {
     display: flex;
     flex-wrap: wrap;
 
-    .pokemon-card {
+    .list-card {
       border-color: #ccc;
 
       &--loading-adjust {
@@ -325,7 +255,7 @@ section {
     @media only screen and (min-width: 581px) {
       margin-top: 73px;
 
-      .pokemon-card {
+      .list-card {
         margin-bottom: 10px;
       }
     }
